@@ -9,4 +9,4 @@
  - set element at index
  - shuffle array
  - set partitions with labels
- 
+ - search for item (linear / binary)
