@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from time import time
+from math import log2
 
 import matplotlib
 matplotlib.use('TkAgg')
@@ -216,7 +217,7 @@ def plot_history_bar(frames, name = ""):
 def plot_history_line(frames):
     arr = [int(j) for j in frames[0]["array"]]
     plt.style.use("dark_background")
-    fig, ax = plt.subplots(figsize = (10,4))
+    fig, ax = plt.subplots(figsize = (10,10))
     line = ax.plot(arr)[0]
     text = ax.text(0.5,1.01,"",size=8,color="white", transform=ax.transAxes)
     ax.set_xlim(0, 1.1*len(arr))
@@ -233,6 +234,30 @@ def plot_history_line(frames):
             "elapsed time (s): " + str(frame["time"])
         text.set_text(summary_string)
         line.set_ydata(pts)
+    anim = FuncAnimation(fig, animate, interval = 10, frames = len(frames))
+    return anim
+
+def plot_history_scatter(frames):
+    y = [int(j) for j in frames[0]["array"]]
+    x = range(len(y))
+    plt.style.use("dark_background")
+    fig, ax = plt.subplots(figsize = (10,4))
+    scatter = ax.scatter(x,y)
+    text = ax.text(0.5,1.01,"",size=8,color="white", transform=ax.transAxes)
+    ax.set_xlim(0, 1.1*len(y))
+    ax.set_ylim(0, 1.1*max(y))
+    ax.set_xticks([])
+    ax.set_yticks([])
+    def animate(i):
+        print(i)
+        frame = frames[i]
+        pts = [[i,int(frame["array"][i])] for i in range(len(frame["array"]))]
+        summary_string = "array acceses: " + str(frame["accesses"]) + "\n" + \
+            "comparisons: " + str(frame["comparisons"]) + "\n" + \
+            "swaps: " + str(frame["swaps"]) + "\n" + \
+            "elapsed time (s): " + str(frame["time"])
+        text.set_text(summary_string)
+        scatter.set_offsets(pts)
     anim = FuncAnimation(fig, animate, interval = 10, frames = len(frames))
     return anim
 
@@ -348,12 +373,89 @@ def cocktail_sort(arr, finish=False):
                 swapped = True
     if finish: arr.finish()
 
-def odd_even_sort():
-    pass
+def odd_even_sort(arr, finish=False):
+    sorted = False
+    while not sorted:
+        sorted = True
+        for i in range(1,len(arr)-1,2):
+            if arr[i] > arr[i+1]:
+                arr.swap(i,i+1)
+                sorted = False
+        for i in range(0,len(arr)-1,2):
+            if arr[i] > arr[i+1]:
+                arr.swap(i,i+1)
+                sorted = False
+    if finish: arr.finish()
 
-arr = Array([i+1 for i in reversed(range(10))],verbose=False)
+def comb_sort(arr, finish=False):
+    gap = len(arr)
+    shrink = 1.3
+    sorted = False
+    while not sorted:
+        gap = int(gap/shrink)
+        if gap <= 1:
+            gap = 1
+            sorted = True
+        i = 0
+        while i+gap < len(arr):
+            if arr[i] > arr[i+gap]:
+                arr.swap(i,i+gap)
+                sorted=False
+            i += 1
+    if finish: arr.finish()
+
+def gnome_sort(arr, finish=False):
+    pos = 0
+    while pos < len(arr):
+        if pos == 0 or arr[pos] >= arr[pos-1]:
+            pos += 1
+        else:
+            arr.swap(pos,pos-1)
+            pos -= 1
+    if finish: arr.finish()
+
+def heap_sort(arr, finish=False, show_heap=False):
+    def heapify(arr):
+        start = parent(len(arr)-1)
+        while start >= 0:
+            sift_down(start, len(arr)-1)
+            start -= 1
+    def sift_down(start, end):
+        root = start
+        while left_child(root) <= end:
+            child = left_child(root)
+            swap = root
+            if arr[swap] < arr[child]:
+                swap = child
+            if child+1 <= end and arr[swap] < arr[child+1]:
+                swap = child+1
+            if swap == root:
+                return
+            else:
+                arr.swap(root,swap)
+                root = swap
+    parent = lambda i: int(0.5*(i-1))
+    left_child = lambda i: 2*i+1
+    right_child = lambda i: 2*i+2
+    heapify(arr)
+    if show_heap:
+        indicies = [i for i in range(len(arr))]
+        arr.labels = [None for i in range(len(arr))]
+        for n, level in enumerate([indicies[2**i:2**(i+1)] for i in range(int(log2(len(arr)))+1)]):
+            for i in level:
+                arr.labels[i] = (0,1./(n+1),1./(n+1))
+                arr.history.append(arr.summary())
+    arr.labels = []
+    end = len(arr)-1
+    while end > 0:
+        arr.swap(end, 0)
+        end -= 1
+        sift_down(0,end)
+    if finish: arr.finish()
+
+arr = Array([i+1 for i in reversed(range(100))],verbose=False)
 print(arr)
-cocktail_sort(arr, True)
+bubble_sort(arr, False)
 print(len(arr.history))
-test = plot_history_bar(arr.history,name="Shell Sort")
+test = plot_history_scatter(arr.history)
 test.save("out.mp4")
