@@ -4,7 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from time import time
-from math import log2
+from math import log2, log
+import colorsys
 
 import matplotlib
 matplotlib.use('TkAgg')
@@ -64,9 +65,10 @@ class Array:
             "args": (key,value)
         }))
 
-    def swap(self, index1, index2):
+    def swap(self, index1, index2, silent=False):
         try:
-            self[index1], self[index2] = self[index2], self[index1]
+            if not silent: self[index1], self[index2] = self[index2], self[index1]
+            if silent: self.array[index1], self.array[index2] = self.array[index2], self.array[index1]
             self.swaps += 1
             self.history.append(self.summary(action = {
                 "type": "swap",
@@ -441,7 +443,8 @@ def heap_sort(arr, finish=False, show_heap=False):
     if show_heap:
         indicies = [i for i in range(len(arr))]
         arr.labels = [None for i in range(len(arr))]
-        for n, level in enumerate([indicies[2**i:2**(i+1)] for i in range(int(log2(len(arr)))+1)]):
+        print(list(enumerate([indicies[2**i:2**(i+1)] for i in range(0,int(log2(len(arr)))+2)])))
+        for n, level in enumerate([indicies[2**i:2**(i+1)] for i in range(0,int(log2(len(arr)))+2)]):
             for i in level:
                 arr.labels[i] = (0,1./(n+1),1./(n+1))
                 arr.history.append(arr.summary())
@@ -453,9 +456,101 @@ def heap_sort(arr, finish=False, show_heap=False):
         sift_down(0,end)
     if finish: arr.finish()
 
-arr = Array([i+1 for i in reversed(range(100))],verbose=False)
+def merge_sort(arr,finish=False,labels=False):
+    # Python translation of https://stackoverflow.com/a/15657134/9653799
+    def wmerge(xs, i, m, j, n, w):
+        if labels:
+            xs.labels = [None for _ in range(len(xs))]
+            for pos in range(i,m):
+                xs.labels[pos] = "purple"
+            for pos in range(j,n):
+                xs.labels[pos] = "pink"
+        # Merge two sorted subarrays xs[i, m) and xs[j, n) to working area xs[w...]
+        while i < m and j < n:
+            if xs[i] < xs[j]:
+                xs.swap(w,i)
+                i += 1
+            else:
+                xs.swap(w,j)
+                j += 1
+            w += 1
+        while i < m:
+            xs.swap(w,i)
+            w += 1
+            i += 1
+        while j < n:
+            xs.swap(w,j)
+            w += 1
+            j += 1
+        xs.labels = None
+    def wsort(xs, l, u, w):
+        # sort xs[l,u) and put result to working area w
+        # constraint, len(w) == u - 1
+        if u-l > 1:
+            m = l + (u-l)//2
+            imsort(xs, l, m)
+            imsort(xs, m, u)
+            wmerge(xs, l, m, m, u, w)
+        else:
+            while l < u:
+                xs.swap(l,w)
+                l += 1
+                w += 1
+
+    def imsort(xs, l, u):
+        if u-l > 1:
+            m = l + (u-l)//2
+            w = l + u - m
+            wsort(xs, l, m, w)
+            while (w - l > 2):
+                n = w
+                w = l + (n-l+1)//2
+                wsort(xs, w, n, l)
+                wmerge(xs, l, l+n-w, n, u, w)
+            n = w
+            while n > l:
+                m = n
+                while m < u and xs[m] < xs[m-1]:
+                    xs.swap(m,m-1)
+                    m += 1
+                n -= 1
+    imsort(arr, 0, len(arr))
+    if finish: arr.finish()
+
+def radix_sort(arr, base=10, labels=False, finish=False):
+    if labels: arr.labels = [None for i in range(len(arr))]
+    def pass_(arr, digit):
+        buckets = [[0,0] for i in range(base)]
+        buckets_ = [[] for i in range(base)]
+        def add_to_bucket(index, bucket):
+            buckets_[bucket].append(int(arr[index]))
+            temp = buckets[bucket][1]
+            while index > temp:
+                arr.swap(index, temp)
+                temp += 1
+            buckets[bucket][1] += 1
+            for i in range(bucket+1, len(buckets)):
+                buckets[i][0] += 1
+                buckets[i][1] += 1
+        for i in range(len(arr)):
+            #print(i, max(sum(buckets, [])))
+            #print(arr[i], digit, int(int(arr[i])//(base**digit)) % base)
+            add_to_bucket(i, int(int(arr[i])//(base**digit)) % base)
+            if labels:
+                for j,bucket in enumerate(buckets):
+                    for index in range(bucket[0], bucket[1]):
+                        arr.labels[index] = colorsys.hsv_to_rgb(j*1./len(buckets),0.5,1)
+        arr.labels = [None for i in range(len(arr))]
+    arr_copy = [int(i) for i in arr.array]
+    for pos in range(1+int(1+log(max(arr_copy))/log(base))):
+        pass_(arr, pos)
+    if finish: arr.finish()
+        
+
+
+arr = Array(list(reversed(range(1,21))),verbose=False)
 print(arr)
-bubble_sort(arr, False)
+heap_sort(arr, finish=True, show_heap=True)
 print(len(arr.history))
-test = plot_history_scatter(arr.history)
-test.save("out.mp4")
+test = plot_history_bar(arr.history)
+test.save("out4.mp4")
