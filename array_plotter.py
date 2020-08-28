@@ -5,11 +5,14 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from time import time
 from math import log2, log
+from random import shuffle, seed
+import random
 import colorsys
 
 import matplotlib
 matplotlib.use('TkAgg')
 
+random.seed(0)
 
 SWAP_COLOR = "yellow"
 ACCESS_COLOR = "green"
@@ -76,6 +79,11 @@ class Array:
             }))
         except:
             raise ValueError("invalid index!")
+
+    def shuffle(self):
+        shuffle(self.array)
+        self.history.append(self.summary())
+
 
     def compare(self, elem1, elem2):
         self.comparisons += 1
@@ -181,7 +189,7 @@ def plot_history_bar(frames, name = ""):
     plt.style.use("dark_background")
     fig, ax = plt.subplots(figsize=(10,10))
     def animate(i):
-        print(i)
+        if i%10==0: print(i, "/", len(frames))
         frame = frames[i]
         bars = [int(j) for j in frame["array"]]
         summary_string = "array acceses: " + str(frame["accesses"]) + "\n" + \
@@ -213,7 +221,7 @@ def plot_history_bar(frames, name = ""):
         ax.bar(range(len(bars)), bars, color = bars_colors, edgecolor = "black", linewidth=1)
         ax.set_xticks([])
         ax.set_yticks([])
-    anim = FuncAnimation(fig, animate, interval = 100, frames = len(frames))
+    anim = FuncAnimation(fig, frames = len(frames), func=animate, interval = 100)
     return anim
 
 def plot_history_line(frames):
@@ -443,11 +451,9 @@ def heap_sort(arr, finish=False, show_heap=False):
     if show_heap:
         indicies = [i for i in range(len(arr))]
         arr.labels = [None for i in range(len(arr))]
-        print(list(enumerate([indicies[2**i:2**(i+1)] for i in range(0,int(log2(len(arr)))+2)])))
-        for n, level in enumerate([indicies[2**i:2**(i+1)] for i in range(0,int(log2(len(arr)))+2)]):
-            for i in level:
-                arr.labels[i] = (0,1./(n+1),1./(n+1))
-                arr.history.append(arr.summary())
+        for i in range(len(arr)):
+            arr.labels[i] = (0,1./(1+int(log2(i+1))), 1./(1+int(log2(i+1))))
+            arr.history.append(arr.summary())
     arr.labels = []
     end = len(arr)-1
     while end > 0:
@@ -517,7 +523,7 @@ def merge_sort(arr,finish=False,labels=False):
     imsort(arr, 0, len(arr))
     if finish: arr.finish()
 
-def radix_sort(arr, base=10, labels=False, finish=False):
+def radix_sort(arr, base=10, labels=False, finish=False, colors=None):
     if labels: arr.labels = [None for i in range(len(arr))]
     def pass_(arr, digit):
         buckets = [[0,0] for i in range(base)]
@@ -539,18 +545,51 @@ def radix_sort(arr, base=10, labels=False, finish=False):
             if labels:
                 for j,bucket in enumerate(buckets):
                     for index in range(bucket[0], bucket[1]):
-                        arr.labels[index] = colorsys.hsv_to_rgb(j*1./len(buckets),0.5,1)
+                        if colors: arr.labels[index] = colors[j]
+                        else: arr.labels[index] = colorsys.hsv_to_rgb(j*1./len(buckets),0.5,1)
         arr.labels = [None for i in range(len(arr))]
     arr_copy = [int(i) for i in arr.array]
     for pos in range(1+int(1+log(max(arr_copy))/log(base))):
         pass_(arr, pos)
     if finish: arr.finish()
         
+def bogo_sort(arr, finish=False):
+    def is_sorted_(arr):
+        for i in range(len(arr)-1):
+            if arr[i] > arr[i+1]: return False
+        return True
+    while not is_sorted_(arr):
+        arr.shuffle()
+    if finish: arr.finish()
+
+def gen_videos(arr):
+    # list containing triples (sorting algorithm, filename, function)
+    SORTING_ALGORITHMS = [
+        ("Insertion Sort", "insertion_sort.mp4", lambda arr: insertion_sort(arr, True)),
+        ("Bubble Sort", "bubble_sort.mp4", lambda arr: bubble_sort(arr, True)),
+        ("Slow Sort", "slow_sort.mp4", lambda arr: slow_sort(arr, True)),
+        ("Stooge Sort", "stooge_sort.mp4", lambda arr: stooge_sort(arr, True)),
+        ("Quick Sort", "quick_sort.mp4", lambda arr: quick_sort(arr, True, True)),
+        ("Shell Sort", "shell_sort.mp4", lambda arr: shell_sort(arr, True)),
+        ("Cocktail Sort", "cocktail_sort.mp4", lambda arr: cocktail_sort(arr, True)),
+        ("Odd Even Sort", "odd_even_sort.mp4", lambda arr: odd_even_sort(arr, True)),
+        ("Comb Sort", "comb_sort.mp4", lambda arr: comb_sort(arr, True)),
+        ("Gnome Sort", "gnome_sort.mp4", lambda arr: gnome_sort(arr, True)),
+        ("Heap Sort", "heap_sort.mp4", lambda arr: heap_sort(arr,True,True)),
+        ("Merge Sort", "merge_sort.mp4", lambda arr: merge_sort(arr, True, True)),
+        ("Radix Sort (Base 2)", "radix_sort_1.mp4", lambda arr: radix_sort(arr, base=2, labels=True, finish=True, colors=["#aa00ff","#ff00ff"])),
+        ("Radix Sort (Base 10)", "radix_sort_2.mp4", lambda arr: radix_sort(arr, base=10, labels=True, finish=True)),
+    ]
+    for name, filename, function in SORTING_ALGORITHMS:
+        arr_copy = deepcopy(arr)
+        function(arr_copy)
+        out = plot_history_bar(arr_copy.history,name=name)
+        out.save(filename)
 
 
-arr = Array(list(reversed(range(1,21))),verbose=False)
+arr = Array(list(reversed(range(1,5))),verbose=False)
 print(arr)
-heap_sort(arr, finish=True, show_heap=True)
+radix_sort(arr, base=2, labels=True, finish=True, colors=["#aa00ff","#ff00ff"])
 print(len(arr.history))
 test = plot_history_bar(arr.history)
 test.save("out4.mp4")
