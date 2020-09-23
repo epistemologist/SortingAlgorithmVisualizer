@@ -10,3 +10,5 @@
  - shuffle array
  - set partitions with labels
  - search for item (linear / binary)
+
+Showcase Video: https://www.youtube.com/watch?v=er7tJWjLq78
