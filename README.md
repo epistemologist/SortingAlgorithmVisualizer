@@ -1,14 +1,5 @@
-# Sorting algorithm tool
+# Sorting Algorithm Visualizer
 
-### Ideas
-- custom Array type
- - compare two elements
- - swap two elements
- - copy from another list
- - get element at index
- - set element at index
- - shuffle array
- - set partitions with labels
- - search for item (linear / binary)
+This is a Python script that generates videos of sorting algorithms similar to those popular on YouTube and elsewhere. Below is an example of what kinds of videos this utility can produce.
 
-Showcase Video: https://www.youtube.com/watch?v=er7tJWjLq78
+https://user-images.githubusercontent.com/12467423/132407329-a3396bd6-d800-4c57-ad76-a3ebac3392b5.mp4
